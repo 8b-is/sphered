@@ -30,14 +30,24 @@ fn eval_expr(e: &Expr, trace: &mut Vec<String>) -> String {
             trace.push("enter <(".to_string());
             let mut current = String::new();
             let mut witnessed = Vec::new();
+            let mut refused = false;
             for s in steps {
+                if refused {
+                    break;
+                }
                 match s {
                     Step::Plain(x) => {
                         current = eval_expr(x, trace);
                     }
                     Step::Admit(x) => {
                         let v = eval_expr(x, trace);
-                        trace.push(format!("admit {v}"));
+                        if v == "x" {
+                            trace.push("refuse admit".to_string());
+                            refused = true;
+                            current = "refuse".to_string();
+                        } else {
+                            trace.push(format!("admit {v}"));
+                        }
                     }
                     Step::Bind(x) => {
                         let v = eval_expr(x, trace);
@@ -50,8 +60,14 @@ fn eval_expr(e: &Expr, trace: &mut Vec<String>) -> String {
                     }
                     Step::Verify(x) => {
                         let v = eval_expr(x, trace);
-                        current = v.clone();
-                        trace.push(format!("verify {v}"));
+                        if v == "x" {
+                            trace.push("refuse verify".to_string());
+                            refused = true;
+                            current = "refuse".to_string();
+                        } else {
+                            current = v.clone();
+                            trace.push(format!("verify {v}"));
+                        }
                     }
                     Step::Witness(x) => {
                         let v = eval_expr(x, trace);
@@ -68,7 +84,11 @@ fn eval_expr(e: &Expr, trace: &mut Vec<String>) -> String {
                     }
                 }
             }
-            trace.push(format!("witnessed {} sources, exit >", witnessed.len()));
+            if refused {
+                trace.push("refused, no witness".to_string());
+            } else {
+                trace.push(format!("witnessed {} sources, exit >", witnessed.len()));
+            }
             current
         }
     }

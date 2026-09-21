@@ -87,3 +87,29 @@ fn two_commits_are_rejected() {
     let e = eval("<( req ? allowed ~ f ! chk @ src > c1 > c2 )>");
     assert!(e.is_err());
 }
+
+#[test]
+fn admit_refusal_stops_the_frame() {
+    let out = eval("<( event ? x ~ process ! chk @ src > done )>").unwrap();
+    assert_eq!(out.value, "refuse");
+    assert!(out.trace.contains(&"refuse admit".to_string()));
+    assert!(out.trace.contains(&"refused, no witness".to_string()));
+    assert!(!out.trace.iter().any(|l| l == "commit done"));
+}
+
+#[test]
+fn verify_refusal_stops_the_frame() {
+    let out = eval("<( event ? allowed ~ process ! x @ src > done )>").unwrap();
+    assert_eq!(out.value, "refuse");
+    assert!(out.trace.contains(&"refuse verify".to_string()));
+    assert!(!out.trace.iter().any(|l| l == "commit done"));
+}
+
+#[test]
+fn admission_leaves_no_witness() {
+    let out = eval("<( event ? allowed ~ process ! chk @ src > done )>").unwrap();
+    assert_eq!(out.value, "done");
+    assert!(out
+        .trace
+        .contains(&"witnessed 1 sources, exit >".to_string()));
+}
