@@ -49,13 +49,41 @@ fn transaction_emits_a_witness() {
 
 #[test]
 fn nested_transaction_follows_inward() {
-    let out = eval("(outer <( inner ~ normalize ! valid )> )").unwrap();
-    assert_eq!(out.value, "valid");
+    let out = eval("(outer <( inner ~ normalize ! valid @ src > done )> )").unwrap();
+    assert_eq!(out.value, "done");
     assert!(out.trace.contains(&"transform normalize".to_string()));
     assert!(out.trace.contains(&"verify valid".to_string()));
+    assert!(out.trace.contains(&"witness src".to_string()));
+    assert!(out.trace.contains(&"commit done".to_string()));
 }
 
 #[test]
 fn unclosed_sphere_is_an_error() {
     assert!(eval("(a b").is_err());
+}
+
+#[test]
+fn admission_after_transform_is_rejected() {
+    let e = eval("<( req ~ write ? allowed ! chk @ src > done )>");
+    assert!(e.is_err());
+    assert!(e.unwrap_err().contains("admission after transformation"));
+}
+
+#[test]
+fn verification_after_commit_is_rejected() {
+    let e = eval("<( req ? allowed ~ write @ src > done ! chk )>");
+    assert!(e.is_err());
+}
+
+#[test]
+fn no_verification_is_rejected() {
+    let e = eval("<( req ? allowed ~ write @ src > done )>");
+    assert!(e.is_err());
+    assert!(e.unwrap_err().contains("no verification clause"));
+}
+
+#[test]
+fn two_commits_are_rejected() {
+    let e = eval("<( req ? allowed ~ f ! chk @ src > c1 > c2 )>");
+    assert!(e.is_err());
 }

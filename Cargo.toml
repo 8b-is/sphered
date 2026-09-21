@@ -1,6 +1,6 @@
 [package]
 name = "sphered"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "sphered — the SpherePOP ASCII DSL: an evaluator that follows inward and returns outward, where every symbol is a distinct evaluator motion and every <(...)> is an admissible, witnessed transition. no dependencies, show me the mechanism."
 license = "AGPL-3.0-only"

@@ -97,8 +97,63 @@ impl<'a> Parser<'a> {
             }
         }
         match self.next() {
-            Some(Token::RAngle) => Ok(Expr::Txn(steps)),
+            Some(Token::RAngle) => {
+                validate_steps(&steps)?;
+                Ok(Expr::Txn(steps))
+            }
             _ => Err("a transaction closes with >".to_string()),
         }
     }
+}
+
+fn validate_steps(steps: &[Step]) -> Result<(), String> {
+    // well-formedness: ?* ~* !+ @+ >  (core ordering), with # and | as extensions
+    let mut phase = 0u8; // 0 admit, 1 transform, 2 verify, 3 attribute
+    let mut verify = 0;
+    let mut commit = 0;
+    for (i, s) in steps.iter().enumerate() {
+        match s {
+            Step::Admit(_) => {
+                if phase > 0 {
+                    return Err("admission after transformation".to_string());
+                }
+            }
+            Step::Transform(_) => {
+                if phase > 1 {
+                    return Err("transform after verification".to_string());
+                }
+                phase = phase.max(1);
+            }
+            Step::Verify(_) => {
+                if phase > 2 {
+                    return Err("verification after attribution".to_string());
+                }
+                phase = phase.max(2);
+                verify += 1;
+            }
+            Step::Witness(_) => {
+                if phase > 3 {
+                    return Err("attribution after commit".to_string());
+                }
+                phase = phase.max(3);
+            }
+            Step::Commit(_) => {
+                commit += 1;
+                if commit > 1 {
+                    return Err("two commits".to_string());
+                }
+                if i != steps.len() - 1 {
+                    return Err("commit is not last".to_string());
+                }
+            }
+            Step::Bind(_) | Step::Remember(_) | Step::Plain(_) => {}
+        }
+    }
+    if verify == 0 {
+        return Err("no verification clause".to_string());
+    }
+    if commit == 0 {
+        return Err("no commit clause".to_string());
+    }
+    Ok(())
 }
