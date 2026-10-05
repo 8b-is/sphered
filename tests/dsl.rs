@@ -113,3 +113,9 @@ fn admission_leaves_no_witness() {
         .trace
         .contains(&"witnessed 1 sources, exit >".to_string()));
 }
+
+#[test]
+fn no_attribution_is_rejected() {
+    let error = eval("<( event ? allowed ~ process ! valid > done )>").unwrap_err();
+    assert!(error.contains("no attribution clause"));
+}

@@ -110,6 +110,7 @@ fn validate_steps(steps: &[Step]) -> Result<(), String> {
     // well-formedness: ?* ~* !+ @+ >  (core ordering), with # and | as extensions
     let mut phase = 0u8; // 0 admit, 1 transform, 2 verify, 3 attribute
     let mut verify = 0;
+    let mut attribution = 0;
     let mut commit = 0;
     for (i, s) in steps.iter().enumerate() {
         match s {
@@ -136,6 +137,7 @@ fn validate_steps(steps: &[Step]) -> Result<(), String> {
                     return Err("attribution after commit".to_string());
                 }
                 phase = phase.max(3);
+                attribution += 1;
             }
             Step::Commit(_) => {
                 commit += 1;
@@ -151,6 +153,9 @@ fn validate_steps(steps: &[Step]) -> Result<(), String> {
     }
     if verify == 0 {
         return Err("no verification clause".to_string());
+    }
+    if attribution == 0 {
+        return Err("no attribution clause".to_string());
     }
     if commit == 0 {
         return Err("no commit clause".to_string());
